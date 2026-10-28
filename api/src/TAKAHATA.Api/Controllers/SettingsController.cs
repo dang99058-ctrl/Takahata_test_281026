@@ -15,21 +15,15 @@ namespace TAKAHATA.Api.Controllers
         private readonly ISender _sender;
         private readonly IPLCService _pLCService;
         private readonly IPLCSettingsService _pLCSettingsService;
-        private readonly DailyJob _dailyJob;
-        private readonly IUnitOfWorkRepository _unitOfWorkRepository;
 
         public SettingsController(
             ISender sender,
             IPLCSettingsService pLCSettingsService,
-            IPLCService pLCService,
-            DailyJob dailyJob,
-            IUnitOfWorkRepository unitOfWorkRepository)
+            IPLCService pLCService)
         {
             _sender = sender;
             _pLCSettingsService = pLCSettingsService;
             _pLCService = pLCService;
-            _dailyJob = dailyJob;
-            _unitOfWorkRepository = unitOfWorkRepository;
         }
 
         [HttpPost("update")]
@@ -82,58 +76,5 @@ namespace TAKAHATA.Api.Controllers
                 r => Ok(r),
                 e => Problem(e));
         }
-
-        [HttpPost("test-daily-cutover")]
-        public async Task<IActionResult> TestDailyCutover(TestDailyCutoverRequest request)
-        {
-            try
-            {
-                await _dailyJob.SendDailyTimeCutoverCommandAsync(
-                    request.ReportDate,
-                    request.MachineId);
-            }
-            catch (DailyCutoverPendingException exception)
-            {
-                return Conflict(new ProblemDetails
-                {
-                    Status = StatusCodes.Status409Conflict,
-                    Title = "Chưa thể chốt ngày mới",
-                    Detail = exception.Message
-                });
-            }
-
-            return Ok(new
-            {
-                request.ReportDate,
-                ContinuationDate = request.ReportDate.AddDays(1)
-            });
-        }
-
-        [HttpPost("clear-pending-daily-cutover")]
-        public async Task<IActionResult> ClearPendingDailyCutover(
-            ClearPendingDailyCutoverRequest request)
-        {
-            var reportDate = await _unitOfWorkRepository.ClearPendingDailyCutoverAsync(
-                request.MachineId);
-            if (!reportDate.HasValue)
-            {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Không có yêu cầu chốt ngày đang chờ",
-                    Detail = $"Máy Id={request.MachineId} hiện không có phản hồi chốt ngày đang chờ."
-                });
-            }
-
-            return Ok(new
-            {
-                request.MachineId,
-                ReportDate = reportDate.Value
-            });
-        }
-
     }
-
-    public sealed record TestDailyCutoverRequest(DateOnly ReportDate, int MachineId);
-    public sealed record ClearPendingDailyCutoverRequest(int MachineId);
 }

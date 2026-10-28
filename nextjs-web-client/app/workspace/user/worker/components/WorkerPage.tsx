@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Col,
-  DatePicker,
   Empty,
   Form,
   Input,
@@ -30,7 +29,7 @@ import {
   getPartProcessByMachineAsync,
 } from "@/app/services/machine/MachineService";
 import { toast } from "react-toastify";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import {
   Machine,
   ManufacturingProcess,
@@ -69,10 +68,6 @@ export default function WorkerPage() {
   const [loading, setLoading] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // New state
-  const [selectedPlantDate, setSelectedPlantDate] = useState<Dayjs>(() =>
-    dayjs().startOf("day"),
-  );
   const [machineKeyword, setMachineKeyword] = useState("");
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
@@ -111,7 +106,7 @@ export default function WorkerPage() {
         page,
         pageSize,
         machineId: selectedMachine.id,
-        plantDate: selectedPlantDate.format("YYYY-MM-DD"),
+        plantDate: dayjs().format("YYYY-MM-DD"),
       };
 
       const result = await getPartProcessByMachineAsync(request);
@@ -137,7 +132,7 @@ export default function WorkerPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, selectedMachine, selectedPlantDate]);
+  }, [page, pageSize, selectedMachine]);
 
   useEffect(() => {
     const run = () => {
@@ -629,18 +624,6 @@ export default function WorkerPage() {
                 <div className="d-flex align-items-center gap-2">
                   <span className="section-number">2</span>
                   <span>Danh sách chi tiết cần gia công</span>
-                  <DatePicker
-                    allowClear={false}
-                    value={selectedPlantDate}
-                    format="DD/MM/YYYY"
-                    onChange={(date) => {
-                      if (date) {
-                        setSelectedPlantDate(date.startOf("day"));
-                        setPage(1);
-                        setSelectedProcess(null);
-                      }
-                    }}
-                  />
                 </div>
 
                 <Button
